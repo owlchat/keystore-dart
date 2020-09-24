@@ -11,6 +11,15 @@ class RawKeyStore {
   /// The symbols are looked up in [dynamicLibrary].
   RawKeyStore(ffi.DynamicLibrary dynamicLibrary) : _dylib = dynamicLibrary;
 
+  /// Create a [`Mnemonic`] Backup from the provided seed (or the keystore seed if exist).
+  ///
+  /// the caller should call [`keystore_string_free`] after being done with it.
+  ///
+  /// ### Safety
+  /// this function assumes that:
+  /// - `ks` is not null pointer to the `KeyStore`.
+  /// - if `seed` is empty, it will try to use the `KeyStore` seed if available.
+  /// otherwise it will return null.
   ffi.Pointer<ffi.Int8> keystore_backup(
     ffi.Pointer<ffi.Void> ks,
     ffi.Pointer<Fixed32Array> seed,
@@ -26,6 +35,12 @@ class RawKeyStore {
 
   _dart_keystore_backup _keystore_backup;
 
+  /// Decrypt the Given data using `KeyStore` owned `SecretKey`
+  ///
+  /// ### Safety
+  /// this function assumes that:
+  /// - `ks` is not null pointer to the `KeyStore`.
+  /// - if `shared_secret` is null, it will use the `KeyStore` secret key.
   int keystore_decrypt(
     ffi.Pointer<ffi.Void> ks,
     ffi.Pointer<SharedBuffer> data,
@@ -43,6 +58,13 @@ class RawKeyStore {
 
   _dart_keystore_decrypt _keystore_decrypt;
 
+  /// Perform a Diffie-Hellman key agreement to produce a `SharedSecret`.
+  ///
+  /// see [`KeyStore::dh`] for full docs.
+  ///
+  /// ### Safety
+  /// this function assumes that:
+  /// - `ks` is not null pointer to the `KeyStore`.
   int keystore_dh(
     ffi.Pointer<ffi.Void> ks,
     ffi.Pointer<Fixed32Array> their_public,
@@ -59,6 +81,12 @@ class RawKeyStore {
 
   _dart_keystore_dh _keystore_dh;
 
+  /// Encrypt the Given data using `KeyStore` owned `SecretKey`
+  ///
+  /// ### Safety
+  /// this function assumes that:
+  /// - `ks` is not null pointer to the `KeyStore`.
+  /// - if `shared_secret` is null, it will use the `KeyStore` secret key.
   int keystore_encrypt(
     ffi.Pointer<ffi.Void> ks,
     ffi.Pointer<SharedBuffer> data,
@@ -76,6 +104,9 @@ class RawKeyStore {
 
   _dart_keystore_encrypt _keystore_encrypt;
 
+  /// Free (Drop) the created KeyStore.
+  /// ### Safety
+  /// this assumes that the given pointer is not null.
   void keystore_free(
     ffi.Pointer<ffi.Void> ks,
   ) {
@@ -88,6 +119,13 @@ class RawKeyStore {
 
   _dart_keystore_free _keystore_free;
 
+  /// Init the `KeyStore` with existing SecretKey Bytes.
+  /// See [`KeyStore::init`] for full docs.
+  ///
+  /// ### Safety
+  /// this function assumes that:
+  /// - `secret_key` is not null
+  /// otherwise it will return null.
   ffi.Pointer<ffi.Void> keystore_init(
     ffi.Pointer<Fixed32Array> secret_key,
   ) {
@@ -100,6 +138,9 @@ class RawKeyStore {
 
   _dart_keystore_init _keystore_init;
 
+  /// Create a new [`KeyStore`].
+  ///
+  /// See [`KeyStore::new`] for full docs.
   ffi.Pointer<ffi.Void> keystore_new() {
     _keystore_new ??= _dylib
         .lookupFunction<_c_keystore_new, _dart_keystore_new>('keystore_new');
@@ -108,6 +149,11 @@ class RawKeyStore {
 
   _dart_keystore_new _keystore_new;
 
+  /// Get the KeyStore Public Key as `Fixed32Array`.
+  ///
+  /// ### Safety
+  /// this function assumes that:
+  /// - `ks` is not null pointer to the `KeyStore`.
   int keystore_public_key(
     ffi.Pointer<ffi.Void> ks,
     ffi.Pointer<Fixed32Array> out,
@@ -122,6 +168,12 @@ class RawKeyStore {
 
   _dart_keystore_public_key _keystore_public_key;
 
+  /// Restore a `KeyStore` from a [`Mnemonic`] Paper Backup.
+  ///
+  /// see [`KeyStore::restore`] for full docs.
+  /// ### Safety
+  /// this function assumes that:
+  /// - `paper_key` is not null and a valid c string.
   ffi.Pointer<ffi.Void> keystore_restore(
     ffi.Pointer<ffi.Int8> paper_key,
   ) {
@@ -135,6 +187,11 @@ class RawKeyStore {
 
   _dart_keystore_restore _keystore_restore;
 
+  /// Get the KeyStore Secret Key as `Fixed32Array`.
+  ///
+  /// ### Safety
+  /// this function assumes that:
+  /// - `ks` is not null pointer to the `KeyStore`.
   int keystore_secret_key(
     ffi.Pointer<ffi.Void> ks,
     ffi.Pointer<Fixed32Array> out,
@@ -149,6 +206,11 @@ class RawKeyStore {
 
   _dart_keystore_secret_key _keystore_secret_key;
 
+  /// Get the KeyStore Seed as `Fixed32Array`.
+  ///
+  /// ### Safety
+  /// this function assumes that:
+  /// - `ks` is not null pointer to the `KeyStore`.
   int keystore_seed(
     ffi.Pointer<ffi.Void> ks,
     ffi.Pointer<Fixed32Array> out,
@@ -163,6 +225,9 @@ class RawKeyStore {
 
   _dart_keystore_seed _keystore_seed;
 
+  /// Free (Drop) a string value allocated by Rust.
+  /// ### Safety
+  /// this assumes that the given pointer is not null.
   void keystore_string_free(
     ffi.Pointer<ffi.Int8> ptr,
   ) {

@@ -130,6 +130,8 @@ linter:
     - void_checks
     - use_full_hex_values_for_flutter_colors
 analyzer:
+  enable-experiment:
+    - non-nullable
   strong-mode:
     implicit-casts: false
     implicit-dynamic: true
