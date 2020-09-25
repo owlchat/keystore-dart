@@ -1,3 +1,5 @@
+library owlchat_keystore;
+
 import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
@@ -8,14 +10,26 @@ import 'package:meta/meta.dart';
 import 'extensions.dart';
 import 'ffi.dart' as ffi;
 
+/// Owlchat Keystore Bining.
+///
+/// Holds the [DynamicLibrary] and the Current `KeyStore`.
 class OwlchatKeyStore {
+  /// Loads `KeyStore`'s [DynamicLibrary] depending on the current [Platform]
+  ///
+  /// Maybe throws [UnsupportedError] if the current [Platform]
+  /// is not supported.
   OwlchatKeyStore() : _raw = _load();
 
-  final ffi.RawKeyStore _raw;
+  ffi.RawKeyStore _raw;
   Pointer<Void> _ks = nullptr;
 
+  /// Create a new `KeyStore`.
+  ///
+  /// the returned [KeysContainer] will contain [PublicKey], [SecretKey]
+  /// and `[KeyStoreSeed]`.
+  /// `SecretKey` and `KeyStoreSeed` should be stored in some secure place.
   KeysContainer create() {
-    _ks = _raw.keystore_new();
+    _ks = _raw?.keystore_new();
     if (_ks == nullptr) {
       throw StateError('Failed to create KeyStore (got null)');
     }
@@ -26,9 +40,13 @@ class OwlchatKeyStore {
     );
   }
 
+  /// Initialize a previously created [KeyStore] with a [SecretKey].
+  ///
+  /// the returned [KeysContainer] will contain [PublicKey], [SecretKey]
+  /// and the `[KeyStoreSeed]` will be `null`.
   KeysContainer init(SecretKey secretKey) {
     final sk = secretKey.expose().asFixed32ArrayPtr();
-    _ks = _raw.keystore_init(sk);
+    _ks = _raw?.keystore_init(sk);
     if (_ks == nullptr) {
       throw StateError('Failed to init KeyStore (got null)');
     }
@@ -39,9 +57,14 @@ class OwlchatKeyStore {
     );
   }
 
+  /// Restores `KeyStore` using a [Mnemonic] paper key.
+  ///
+  /// the returned [KeysContainer] will contain [PublicKey], [SecretKey]
+  /// and `[KeyStoreSeed]`.
+  /// `SecretKey` and `KeyStoreSeed` should be stored in some secure place.
   KeysContainer restore(String paperKey) {
     final pk = Utf8.toUtf8(paperKey);
-    _ks = _raw.keystore_restore(pk.cast());
+    _ks = _raw?.keystore_restore(pk.cast());
     if (_ks == nullptr) {
       throw StateError('Failed to restore KeyStore (got null)');
     }
@@ -52,72 +75,90 @@ class OwlchatKeyStore {
     );
   }
 
+  /// Backup the current `KeyStore`.
+  ///
+  /// this will first try to create the backup and return
+  /// a [`Mnemonic`] paper key, if the current `KeyStore` has no seed.
+  /// it will read from the provided one, if both are null;
+  /// it will throw an Error.
   String backup({KeyStoreSeed seed}) {
     Pointer<ffi.Fixed32Array> arr = nullptr;
     if (seed != null) {
       arr = seed.expose().asFixed32ArrayPtr();
     }
-    final ptr = _raw.keystore_backup(_ks, arr);
+    final ptr = _raw?.keystore_backup(_ks, arr);
     if (ptr == nullptr) {
       throw StateError('Failed to create backup (got null)');
     }
     final paperKey = Utf8.fromUtf8(ptr.cast());
-    _raw.keystore_string_free(ptr);
+    _raw?.keystore_string_free(ptr);
     return paperKey;
   }
 
+  /// Perform a Diffie-Hellman key agreement to produce a [SharedSecret].
   SharedSecret diffieHellman(PublicKey thierPublic) {
     final arr = _emptyFixed32Array();
     final pk = thierPublic.expose().asFixed32ArrayPtr();
-    final status = _raw.keystore_dh(_ks, pk, arr);
+    final status = _raw?.keystore_dh(_ks, pk, arr);
     _assertOk(status);
     final sharedSecret = SharedSecret(arr.asUint8List());
     return sharedSecret;
   }
 
+  /// Encrypt the provided data using the current `KeyStore`'s [SecretKey]
+  /// else uses [SharedSecret] if provided.
   Uint8List encrypt(Uint8List data, {SharedSecret sharedSecret}) {
     Pointer<ffi.Fixed32Array> secret = nullptr;
     if (sharedSecret != null) {
       secret = sharedSecret.expose().asFixed32ArrayPtr();
     }
     final input = data.asSharedBufferPtr();
-    final status = _raw.keystore_encrypt(_ks, input, secret);
+    final status = _raw?.keystore_encrypt(_ks, input, secret);
     _assertOk(status);
     final out = input.asUint8List();
     return out;
   }
 
+  /// Decrypt the provided data using the current `KeyStore`'s [SecretKey]
+  /// else uses [SharedSecret] if provided.
   Uint8List decrypt(Uint8List data, {SharedSecret sharedSecret}) {
     Pointer<ffi.Fixed32Array> secret = nullptr;
     if (sharedSecret != null) {
       secret = sharedSecret.expose().asFixed32ArrayPtr();
     }
     final input = data.asSharedBufferPtrExact();
-    final status = _raw.keystore_decrypt(_ks, input, secret);
+    final status = _raw?.keystore_decrypt(_ks, input, secret);
     _assertOk(status);
     final out = input.asUint8List();
     return out;
   }
 
+  /// Current `KeyStore`'s [SecretKey]
   SecretKey get secretKey {
     final secretKeyArray = _emptyFixed32Array();
-    final status = _raw.keystore_secret_key(_ks, secretKeyArray);
+    final status = _raw?.keystore_secret_key(_ks, secretKeyArray);
     _assertOk(status);
     final secretKey = secretKeyArray.asUint8List();
     return SecretKey(secretKey);
   }
 
+  /// Current `KeyStore`'s [PublicKey]
   PublicKey get publicKey {
     final publicKeyArray = _emptyFixed32Array();
-    final status = _raw.keystore_public_key(_ks, publicKeyArray);
+    final status = _raw?.keystore_public_key(_ks, publicKeyArray);
     _assertOk(status);
     final publicKey = publicKeyArray.asUint8List();
     return PublicKey(publicKey);
   }
 
+  /// Current `KeyStore`'s `Seed`.
+  ///
+  /// ### Note
+  /// The [KeyStoreSeed] will be `null` in the case this `KeyStore`
+  /// is Inialized with `SecretKey`
   KeyStoreSeed get seed {
     final seedArray = _emptyFixed32Array();
-    final status = _raw.keystore_seed(_ks, seedArray);
+    final status = _raw?.keystore_seed(_ks, seedArray);
     if (status == ffi.OperationStatus.KeyStoreHasNoSeed) {
       return null;
     } else {
@@ -126,12 +167,32 @@ class OwlchatKeyStore {
     }
   }
 
-  void dispose() {
-    _raw.keystore_free(_ks);
+  /// Clean the Current `KeyStore`.
+  ///
+  /// ### Note
+  /// this dose not unload the [DynamicLibrary], and the
+  /// current [OwlchatKeyStore] could be reused.
+  /// to clear everything call `dispose`.
+  void clean() {
+    _raw?.keystore_free(_ks);
     _ks = nullptr;
+  }
+
+  /// Dispose Everything.
+  /// it will `clean` the current `KeyStore` and unload the `DynamicLibrary`.
+  ///
+  /// ### Note
+  /// this unloads the [DynamicLibrary], and [OwlchatKeyStore]
+  /// couldn't be reused again.
+  /// to only clean current `KeyStore` call `clean`.
+  void dispose() {
+    clean();
+    _raw = null;
   }
 }
 
+/// A [KeysContainer] is a simple class that holds
+/// [PublicKey], [SecretKey] and [KeyStoreSeed] if available.
 class KeysContainer {
   KeysContainer({
     @required this.publicKey,
@@ -139,20 +200,33 @@ class KeysContainer {
     this.seed,
   });
 
+  /// The Current `KeyStore`'s `PublicKey`.
   final PublicKey publicKey;
+
+  /// The Current `KeyStore`'s `SecretKey`.
   final SecretKey secretKey;
+
+  /// The Current `KeyStore`'s `Seed`.
+  ///
+  /// ### Note
+  /// The Seed will be `null` in the case this `KeyStore`
+  /// is Inialized with `SecretKey`.
   final KeyStoreSeed seed;
 }
 
+/// A [Key] is an abstract class that shares functinality between
+/// [PublicKey], [SecretKey], [SharedSecret] and [KeyStoreSeed].
 abstract class Key {
   const Key(Uint8List key) : _inner = key;
 
   final Uint8List _inner;
 
+  /// Convert The Key into base64 encoded string.
   String asBase64() {
     return base64.encode(_inner);
   }
 
+  /// Expose the underlaying bytes.
   Uint8List expose() {
     return _inner;
   }
@@ -203,6 +277,8 @@ class KeyStoreSeed extends Key {
   }
 }
 
+/// Loads the KeyStore [DynamicLibrary] depending on the [Platform]
+/// and creates new `RawKeyStore`.
 ffi.RawKeyStore _load() {
   if (Platform.isAndroid) {
     return ffi.RawKeyStore(DynamicLibrary.open('libkeystore.so'));
@@ -219,6 +295,7 @@ ffi.RawKeyStore _load() {
   }
 }
 
+/// Creates a New Empty `Fixed32Array` so `FFI` can Write into it.
 Pointer<ffi.Fixed32Array> _emptyFixed32Array() {
   final ptr = allocate<Uint8>(count: 32)
     ..asTypedList(32).setAll(0, List.filled(32, 0));

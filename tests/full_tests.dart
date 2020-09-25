@@ -60,7 +60,7 @@ void main() {
 
     test('it should encrypt data using current keystore', () {
       output = keyStore.encrypt(input);
-      keyStore.dispose(); // clear keystore.
+      keyStore.clean(); // clear keystore.
       expect(output, isNotEmpty);
     });
 
@@ -140,7 +140,7 @@ void main() {
 
     test('it should encrypt data using current keystore', () {
       output = keyStore.encrypt(input);
-      keyStore.dispose(); // clear keystore.
+      keyStore.clean(); // clean keystore.
       expect(output, isNotEmpty);
     });
 
