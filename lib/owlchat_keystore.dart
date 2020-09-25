@@ -3,6 +3,7 @@ import 'dart:ffi';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
+import 'package:meta/meta.dart';
 
 import 'extensions.dart';
 import 'ffi.dart' as ffi;
@@ -15,6 +16,9 @@ class OwlchatKeyStore {
 
   KeysContainer create() {
     _ks = _raw.keystore_new();
+    if (_ks == nullptr) {
+      throw StateError('Failed to create KeyStore (got null)');
+    }
     return KeysContainer(
       secretKey: secretKey,
       publicKey: publicKey,
@@ -25,7 +29,9 @@ class OwlchatKeyStore {
   KeysContainer init(SecretKey secretKey) {
     final sk = secretKey.expose().asFixed32ArrayPtr();
     _ks = _raw.keystore_init(sk);
-    secretKey.zeroize();
+    if (_ks == nullptr) {
+      throw StateError('Failed to init KeyStore (got null)');
+    }
     return KeysContainer(
       secretKey: secretKey,
       publicKey: publicKey,
@@ -36,6 +42,9 @@ class OwlchatKeyStore {
   KeysContainer restore(String paperKey) {
     final pk = Utf8.toUtf8(paperKey);
     _ks = _raw.keystore_restore(pk.cast());
+    if (_ks == nullptr) {
+      throw StateError('Failed to restore KeyStore (got null)');
+    }
     return KeysContainer(
       secretKey: secretKey,
       publicKey: publicKey,
@@ -43,13 +52,15 @@ class OwlchatKeyStore {
     );
   }
 
-  String backup(KeyStoreSeed? seed) {
+  String backup({KeyStoreSeed seed}) {
     Pointer<ffi.Fixed32Array> arr = nullptr;
     if (seed != null) {
       arr = seed.expose().asFixed32ArrayPtr();
-      seed.zeroize();
     }
     final ptr = _raw.keystore_backup(_ks, arr);
+    if (ptr == nullptr) {
+      throw StateError('Failed to create backup (got null)');
+    }
     final paperKey = Utf8.fromUtf8(ptr.cast());
     _raw.keystore_string_free(ptr);
     return paperKey;
@@ -59,27 +70,31 @@ class OwlchatKeyStore {
     final arr = _emptyFixed32Array();
     final pk = thierPublic.expose().asFixed32ArrayPtr();
     final status = _raw.keystore_dh(_ks, pk, arr);
-    return SharedSecret(arr.asUint8List());
+    _assertOk(status);
+    final sharedSecret = SharedSecret(arr.asUint8List());
+    return sharedSecret;
   }
 
-  Uint8List encrypt(Uint8List data, SharedSecret? sharedSecret) {
+  Uint8List encrypt(Uint8List data, {SharedSecret sharedSecret}) {
     Pointer<ffi.Fixed32Array> secret = nullptr;
     if (sharedSecret != null) {
       secret = sharedSecret.expose().asFixed32ArrayPtr();
     }
     final input = data.asSharedBufferPtr();
     final status = _raw.keystore_encrypt(_ks, input, secret);
+    _assertOk(status);
     final out = input.asUint8List();
     return out;
   }
 
-  Uint8List decrypt(Uint8List data, SharedSecret? sharedSecret) {
+  Uint8List decrypt(Uint8List data, {SharedSecret sharedSecret}) {
     Pointer<ffi.Fixed32Array> secret = nullptr;
     if (sharedSecret != null) {
       secret = sharedSecret.expose().asFixed32ArrayPtr();
     }
-    final input = data.asSharedBufferPtr();
+    final input = data.asSharedBufferPtrExact();
     final status = _raw.keystore_decrypt(_ks, input, secret);
+    _assertOk(status);
     final out = input.asUint8List();
     return out;
   }
@@ -87,6 +102,7 @@ class OwlchatKeyStore {
   SecretKey get secretKey {
     final secretKeyArray = _emptyFixed32Array();
     final status = _raw.keystore_secret_key(_ks, secretKeyArray);
+    _assertOk(status);
     final secretKey = secretKeyArray.asUint8List();
     return SecretKey(secretKey);
   }
@@ -94,32 +110,38 @@ class OwlchatKeyStore {
   PublicKey get publicKey {
     final publicKeyArray = _emptyFixed32Array();
     final status = _raw.keystore_public_key(_ks, publicKeyArray);
+    _assertOk(status);
     final publicKey = publicKeyArray.asUint8List();
     return PublicKey(publicKey);
   }
 
-  KeyStoreSeed? get seed {
+  KeyStoreSeed get seed {
     final seedArray = _emptyFixed32Array();
     final status = _raw.keystore_seed(_ks, seedArray);
-    final seed = seedArray.asUint8List();
-    return KeyStoreSeed(seed);
+    if (status == ffi.OperationStatus.KeyStoreHasNoSeed) {
+      return null;
+    } else {
+      final seed = seedArray.asUint8List();
+      return KeyStoreSeed(seed);
+    }
   }
 
   void dispose() {
     _raw.keystore_free(_ks);
+    _ks = nullptr;
   }
 }
 
 class KeysContainer {
   KeysContainer({
-    required this.publicKey,
-    required this.secretKey,
+    @required this.publicKey,
+    @required this.secretKey,
     this.seed,
   });
 
   final PublicKey publicKey;
   final SecretKey secretKey;
-  final KeyStoreSeed? seed;
+  final KeyStoreSeed seed;
 }
 
 abstract class Key {
@@ -131,12 +153,20 @@ abstract class Key {
     return base64.encode(_inner);
   }
 
-  void zeroize() {
-    _inner.setAll(0, List.filled(32, 0));
-  }
-
   Uint8List expose() {
     return _inner;
+  }
+
+  @override
+  int get hashCode => _inner.hashCode;
+
+  @override
+  bool operator ==(Object other) {
+    if (other is Key) {
+      return _inner == other._inner;
+    } else {
+      return false;
+    }
   }
 }
 
@@ -196,4 +226,33 @@ Pointer<ffi.Fixed32Array> _emptyFixed32Array() {
   final buf = allocate<ffi.Fixed32Array>();
   buf.ref.buf = ptr;
   return buf;
+}
+
+void _assertOk(int status) {
+  if (status != ffi.OperationStatus.OK) {
+    throw StateError(_operationStatusCodeToErrorMessage(status));
+  }
+}
+
+String _operationStatusCodeToErrorMessage(int status) {
+  switch (status) {
+    case ffi.OperationStatus.AeadError:
+      return 'AEAD Error (status: $status).';
+    case ffi.OperationStatus.BadFixed32ArrayProvided:
+      return 'Bad Fixed32 Array Provided it maybe null? (status: $status)';
+    case ffi.OperationStatus.BadSharedBufferProvided:
+      return 'Bad SharedBuffer Provided it maybe null? (status: $status)';
+    case ffi.OperationStatus.Bip39Error:
+      return 'Bip39 Error, maybe bad PaperKey Provided (status: $status)';
+    case ffi.OperationStatus.KeyStoreHasNoSeed:
+      return 'The Current KeyStore has no seed, and you provided None '
+          'Please Provide seed to create a backup paper key (status: $status)';
+    case ffi.OperationStatus.KeyStoreNotInialized:
+      return 'KeyStore not inialized yet. call one of (create, init, restore)'
+          ' methods to Inialize the KeyStore (status: $status)';
+    case ffi.OperationStatus.Utf8Error:
+      return 'Bad Utf8 String Provided (status: $status)';
+    default:
+      return 'Unknonw Status Code: $status';
+  }
 }
