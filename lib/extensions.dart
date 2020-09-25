@@ -21,7 +21,6 @@ extension Uint8ListArray on Pointer<ffi.Fixed32Array> {
     final view = ref.buf.asTypedList(32);
     final builder = BytesBuilder(copy: false)..add(view);
     final bytes = builder.takeBytes();
-    // ffi.free(ref.buf);
     ffi.free(this);
     return bytes;
   }
@@ -59,7 +58,6 @@ extension Uint8ListBuffer on Pointer<ffi.SharedBuffer> {
     final view = ref.buf.asTypedList(ref.len);
     final builder = BytesBuilder(copy: false)..add(view);
     final bytes = builder.takeBytes();
-    // ffi.free(ref.buf);
     ffi.free(this);
     return bytes;
   }
