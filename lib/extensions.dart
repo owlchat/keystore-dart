@@ -28,7 +28,7 @@ extension Uint8ListArray on Pointer<ffi.Fixed32Array> {
 
 extension SharedBuffer on Uint8List {
   Pointer<ffi.SharedBuffer> asSharedBufferPtr() {
-    final cap = (length * 4) + 12; // 12 for nonce
+    final cap = (length * (length > 4 ? 4 : 5)) + 12; // 12 for nonce
     final ptr = ffi.allocate<Uint8>(count: cap)
       ..asTypedList(length).setAll(0, this);
 
