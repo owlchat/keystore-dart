@@ -32,6 +32,11 @@ void main() {
       expect(output, isNotEmpty);
     });
 
+    test('it should encrypt small data', () {
+      final out = keyStore.encrypt(Uint8List.fromList([10, 11, 12]));
+      expect(out, isNotEmpty);
+    });
+
     test('it should decrypt data and should be same as input', () {
       output = keyStore.decrypt(output);
       expect(output, isNotEmpty);
