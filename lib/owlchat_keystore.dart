@@ -18,9 +18,9 @@ class OwlchatKeyStore {
   ///
   /// Maybe throws [UnsupportedError] if the current [Platform]
   /// is not supported.
-  OwlchatKeyStore() : _raw = _load();
+  OwlchatKeyStore();
 
-  ffi.RawKeyStore _raw;
+  static final ffi.RawKeyStore _raw = _load();
   Pointer<Void> _ks = nullptr;
 
   /// Create a new `KeyStore`.
@@ -40,7 +40,7 @@ class OwlchatKeyStore {
     );
   }
 
-  /// Initialize a previously created [KeyStore] with a [SecretKey].
+  /// Initialize a previously created [OwlchatKeyStore] with a [SecretKey].
   ///
   /// the returned [KeysContainer] will contain [PublicKey], [SecretKey]
   /// and the `[KeyStoreSeed]` will be `null`.
@@ -57,6 +57,7 @@ class OwlchatKeyStore {
     );
   }
 
+  // ignore: comment_references
   /// Restores `KeyStore` using a [Mnemonic] paper key.
   ///
   /// the returned [KeysContainer] will contain [PublicKey], [SecretKey]
@@ -178,16 +179,11 @@ class OwlchatKeyStore {
     _ks = nullptr;
   }
 
-  /// Dispose Everything.
-  /// it will `clean` the current `KeyStore` and unload the `DynamicLibrary`.
-  ///
-  /// ### Note
-  /// this unloads the [DynamicLibrary], and [OwlchatKeyStore]
-  /// couldn't be reused again.
-  /// to only clean current `KeyStore` call `clean`.
-  void dispose() {
-    clean();
-    _raw = null;
+  static Uint8List calculateSha256Hash(String path) {
+    final hash = _emptyFixed32Array();
+    final status = _raw?.keystore_sha256_hash(path.toPointer().cast(), hash);
+    _assertOk(status);
+    return hash.asUint8List();
   }
 }
 
@@ -329,6 +325,8 @@ String _operationStatusCodeToErrorMessage(int status) {
           ' methods to Inialize the KeyStore (status: $status)';
     case ffi.OperationStatus.Utf8Error:
       return 'Bad Utf8 String Provided (status: $status)';
+    case ffi.OperationStatus.IOError:
+      return 'IO Error, perhaps bad file path provided (status: $status)';
     default:
       return 'Unknonw Status Code: $status';
   }

@@ -19,6 +19,7 @@ class RawKeyStore {
   /// this function assumes that:
   /// - `ks` is not null pointer to the `KeyStore`.
   /// - if `seed` is empty, it will try to use the `KeyStore` seed if available.
+  ///
   /// otherwise it will return null.
   ffi.Pointer<ffi.Int8> keystore_backup(
     ffi.Pointer<ffi.Void> ks,
@@ -120,6 +121,7 @@ class RawKeyStore {
   _dart_keystore_free _keystore_free;
 
   /// Init the `KeyStore` with existing SecretKey Bytes.
+  ///
   /// See [`KeyStore::init`] for full docs.
   ///
   /// ### Safety
@@ -225,6 +227,26 @@ class RawKeyStore {
 
   _dart_keystore_seed _keystore_seed;
 
+  /// Calculate SHA256 Hash of the provided file path.
+  ///
+  /// ### Safety
+  /// this function assumes that:
+  /// - `file_path` is not null pointer.
+  /// - `out` is not null pointer.
+  int keystore_sha256_hash(
+    ffi.Pointer<ffi.Int8> file_path,
+    ffi.Pointer<Fixed32Array> out,
+  ) {
+    _keystore_sha256_hash ??= _dylib.lookupFunction<_c_keystore_sha256_hash,
+        _dart_keystore_sha256_hash>('keystore_sha256_hash');
+    return _keystore_sha256_hash(
+      file_path,
+      out,
+    );
+  }
+
+  _dart_keystore_sha256_hash _keystore_sha256_hash;
+
   /// Free (Drop) a string value allocated by Rust.
   /// ### Safety
   /// this assumes that the given pointer is not null.
@@ -251,6 +273,7 @@ abstract class OperationStatus {
   static const int AeadError = 6;
   static const int Bip39Error = 7;
   static const int Utf8Error = 8;
+  static const int IOError = 9;
 }
 
 class Fixed32Array extends ffi.Struct {
@@ -368,6 +391,16 @@ typedef _c_keystore_seed = ffi.Int32 Function(
 
 typedef _dart_keystore_seed = int Function(
   ffi.Pointer<ffi.Void> ks,
+  ffi.Pointer<Fixed32Array> out,
+);
+
+typedef _c_keystore_sha256_hash = ffi.Int32 Function(
+  ffi.Pointer<ffi.Int8> file_path,
+  ffi.Pointer<Fixed32Array> out,
+);
+
+typedef _dart_keystore_sha256_hash = int Function(
+  ffi.Pointer<ffi.Int8> file_path,
   ffi.Pointer<Fixed32Array> out,
 );
 

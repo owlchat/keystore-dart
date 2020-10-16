@@ -10,7 +10,7 @@ void main() {
       final keys = keyStore.create();
       expect(keys, isNotNull);
     });
-    tearDownAll(keyStore.dispose);
+    tearDownAll(keyStore.clean);
   });
 
   group('Encrypt/Decrypt', () {
@@ -43,7 +43,7 @@ void main() {
       expect(output, input);
     });
 
-    tearDownAll(keyStore.dispose);
+    tearDownAll(keyStore.clean);
   });
 
   group('Init KeyStore', () {
@@ -79,7 +79,7 @@ void main() {
       expect(output, input);
     });
 
-    tearDownAll(keyStore.dispose);
+    tearDownAll(keyStore.clean);
   });
 
   group('Diffie–Hellman', () {
@@ -121,8 +121,8 @@ void main() {
       expect(Uint8List.fromList('Hey Alice!'.codeUnits), msg);
     });
     tearDownAll(() {
-      aliceKeystore.dispose();
-      bobKeystore.dispose();
+      aliceKeystore.clean();
+      bobKeystore.clean();
     });
   });
 
@@ -159,6 +159,6 @@ void main() {
       expect(output, input);
     });
 
-    tearDownAll(keyStore.dispose);
+    tearDownAll(keyStore.clean);
   });
 }

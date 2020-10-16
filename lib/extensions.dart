@@ -62,3 +62,9 @@ extension Uint8ListBuffer on Pointer<ffi.SharedBuffer> {
     return bytes;
   }
 }
+
+extension StringPointer on String {
+  Pointer<ffi.Utf8> toPointer() {
+    return ffi.Utf8.toUtf8(this);
+  }
+}
