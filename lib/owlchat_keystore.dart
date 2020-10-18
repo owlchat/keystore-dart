@@ -20,7 +20,7 @@ class OwlchatKeyStore {
   /// is not supported.
   OwlchatKeyStore();
 
-  static final ffi.RawKeyStore _raw = _load();
+  final ffi.RawKeyStore _raw = _load();
   Pointer<Void> _ks = nullptr;
 
   /// Create a new `KeyStore`.
@@ -179,7 +179,7 @@ class OwlchatKeyStore {
     _ks = nullptr;
   }
 
-  static Uint8List calculateSha256Hash(String path) {
+  Uint8List calculateSha256Hash(String path) {
     final hash = _emptyFixed32Array();
     final status = _raw?.keystore_sha256_hash(path.toPointer().cast(), hash);
     _assertOk(status);
