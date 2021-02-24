@@ -16,9 +16,29 @@ extension Fixed32Array on Uint8List {
   }
 }
 
-extension Uint8ListArray on Pointer<ffi.Fixed32Array> {
+extension Uint8ListArray32 on Pointer<ffi.Fixed32Array> {
   Uint8List asUint8List() {
     final view = ref.buf.asTypedList(32);
+    final builder = BytesBuilder(copy: false)..add(view);
+    final bytes = builder.takeBytes();
+    ffi.free(this);
+    return bytes;
+  }
+}
+
+extension Fixed64Array on Uint8List {
+  Pointer<ffi.Fixed64Array> asFixed64ArrayPtr() {
+    assert(length == 64);
+    final ptr = ffi.allocate<Uint8>(count: 64)..asTypedList(64).setAll(0, this);
+    final arr = ffi.allocate<ffi.Fixed64Array>();
+    arr.ref.buf = ptr;
+    return arr;
+  }
+}
+
+extension Uint8ListArray64 on Pointer<ffi.Fixed64Array> {
+  Uint8List asUint8List() {
+    final view = ref.buf.asTypedList(64);
     final builder = BytesBuilder(copy: false)..add(view);
     final bytes = builder.takeBytes();
     ffi.free(this);

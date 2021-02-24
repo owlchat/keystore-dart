@@ -134,6 +134,33 @@ class OwlchatKeyStore {
     return out;
   }
 
+  Uint8List calculateSignature(Uint8List message) {
+    final input = message.asSharedBufferPtrExact();
+    final sig = _emptyFixed64Array();
+    final status = _raw?.keystore_calculate_signature(_ks, input, sig);
+    _assertOk(status);
+    final out = sig.asUint8List();
+    return out;
+  }
+
+  bool verifySignature(
+    PublicKey thierPublic,
+    Uint8List message,
+    Uint8List signature,
+  ) {
+    final msg = message.asSharedBufferPtrExact();
+    final sig = signature.asFixed64ArrayPtr();
+    final public = thierPublic.expose().asFixed32ArrayPtr();
+
+    final status = _raw?.keystore_verify_signature(
+          public,
+          msg,
+          sig,
+        ) ??
+        ffi.OperationStatus.InvalidSignature;
+    return status == ffi.OperationStatus.Ok;
+  }
+
   /// Current `KeyStore`'s [SecretKey]
   SecretKey get secretKey {
     final secretKeyArray = _emptyFixed32Array();
@@ -301,8 +328,18 @@ Pointer<ffi.Fixed32Array> _emptyFixed32Array() {
   return buf;
 }
 
+/// Creates a New Empty `Fixed64Array` so `FFI` can Write into it.
+Pointer<ffi.Fixed64Array> _emptyFixed64Array() {
+  final ptr = allocate<Uint8>(count: 64)
+    ..asTypedList(64).setAll(0, List.filled(64, 0));
+
+  final buf = allocate<ffi.Fixed64Array>();
+  buf.ref.buf = ptr;
+  return buf;
+}
+
 void _assertOk(int status) {
-  if (status != ffi.OperationStatus.OK) {
+  if (status != ffi.OperationStatus.Ok) {
     throw StateError(_operationStatusCodeToErrorMessage(status));
   }
 }
@@ -313,6 +350,8 @@ String _operationStatusCodeToErrorMessage(int status) {
       return 'AEAD Error (status: $status).';
     case ffi.OperationStatus.BadFixed32ArrayProvided:
       return 'Bad Fixed32 Array Provided it maybe null? (status: $status)';
+    case ffi.OperationStatus.BadFixed64ArrayProvided:
+      return 'Bad Fixed64 Array Provided it maybe null? (status: $status)';
     case ffi.OperationStatus.BadSharedBufferProvided:
       return 'Bad SharedBuffer Provided it maybe null? (status: $status)';
     case ffi.OperationStatus.Bip39Error:
@@ -325,8 +364,10 @@ String _operationStatusCodeToErrorMessage(int status) {
           ' methods to Inialize the KeyStore (status: $status)';
     case ffi.OperationStatus.Utf8Error:
       return 'Bad Utf8 String Provided (status: $status)';
-    case ffi.OperationStatus.IOError:
+    case ffi.OperationStatus.IoError:
       return 'IO Error, perhaps bad file path provided (status: $status)';
+    case ffi.OperationStatus.InvalidSignature:
+      return 'Invalid Signature (status: $status)';
     default:
       return 'Unknonw Status Code: $status';
   }

@@ -161,4 +161,31 @@ void main() {
 
     tearDownAll(keyStore.clean);
   });
+
+  group('Signature Create/Verify', () {
+    final keyStore = OwlchatKeyStore();
+    final message = Uint8List.fromList(
+      List.of(
+        'Owlchat'.codeUnits,
+        growable: false,
+      ),
+    );
+    Uint8List signature;
+    test('it should create signature', () {
+      final keys = keyStore.create();
+      expect(keys, isNotNull);
+      signature = keyStore.calculateSignature(message);
+    });
+
+    test('it should verify signature', () {
+      final ok = keyStore.verifySignature(
+        keyStore.publicKey,
+        message,
+        signature,
+      );
+      expect(ok, true);
+    });
+
+    tearDownAll(keyStore.clean);
+  });
 }

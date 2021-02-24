@@ -36,6 +36,29 @@ class RawKeyStore {
 
   _dart_keystore_backup _keystore_backup;
 
+  /// Calculate the signature of the message using the given `KeyStore`.
+  ///
+  /// ### Safety
+  /// this function assumes that:
+  /// - `ks` is not null pointer to the `KeyStore`.
+  /// - `message` is not null pointer and valid bytes buffer.
+  int keystore_calculate_signature(
+    ffi.Pointer<ffi.Void> ks,
+    ffi.Pointer<SharedBuffer> message,
+    ffi.Pointer<Fixed64Array> out,
+  ) {
+    _keystore_calculate_signature ??= _dylib.lookupFunction<
+        _c_keystore_calculate_signature,
+        _dart_keystore_calculate_signature>('keystore_calculate_signature');
+    return _keystore_calculate_signature(
+      ks,
+      message,
+      out,
+    );
+  }
+
+  _dart_keystore_calculate_signature _keystore_calculate_signature;
+
   /// Decrypt the Given data using `KeyStore` owned `SecretKey`
   ///
   /// ### Safety
@@ -261,19 +284,45 @@ class RawKeyStore {
   }
 
   _dart_keystore_string_free _keystore_string_free;
+
+  /// Verifies the signature of the message using the given `PublicKey`.
+  ///
+  /// ### Safety
+  /// this function assumes that:
+  /// - `thier_public` is not null pointer to the fixed size 32 bytes array.
+  /// - `message` is not null pointer and valid bytes buffer.
+  /// - `signature` is not null pointer to the fixed size 64 bytes array.
+  int keystore_verify_signature(
+    ffi.Pointer<Fixed32Array> thier_public,
+    ffi.Pointer<SharedBuffer> message,
+    ffi.Pointer<Fixed64Array> signature,
+  ) {
+    _keystore_verify_signature ??= _dylib.lookupFunction<
+        _c_keystore_verify_signature,
+        _dart_keystore_verify_signature>('keystore_verify_signature');
+    return _keystore_verify_signature(
+      thier_public,
+      message,
+      signature,
+    );
+  }
+
+  _dart_keystore_verify_signature _keystore_verify_signature;
 }
 
 abstract class OperationStatus {
-  static const int OK = 0;
+  static const int Ok = 0;
   static const int Unknwon = 1;
   static const int KeyStoreNotInialized = 2;
   static const int BadFixed32ArrayProvided = 3;
-  static const int BadSharedBufferProvided = 4;
-  static const int KeyStoreHasNoSeed = 5;
-  static const int AeadError = 6;
-  static const int Bip39Error = 7;
-  static const int Utf8Error = 8;
-  static const int IOError = 9;
+  static const int BadFixed64ArrayProvided = 4;
+  static const int BadSharedBufferProvided = 5;
+  static const int KeyStoreHasNoSeed = 6;
+  static const int AeadError = 7;
+  static const int Bip39Error = 8;
+  static const int Utf8Error = 9;
+  static const int IoError = 10;
+  static const int InvalidSignature = 11;
 }
 
 class Fixed32Array extends ffi.Struct {
@@ -290,6 +339,10 @@ class SharedBuffer extends ffi.Struct {
   int cap;
 }
 
+class Fixed64Array extends ffi.Struct {
+  ffi.Pointer<ffi.Uint8> buf;
+}
+
 typedef _c_keystore_backup = ffi.Pointer<ffi.Int8> Function(
   ffi.Pointer<ffi.Void> ks,
   ffi.Pointer<Fixed32Array> seed,
@@ -298,6 +351,18 @@ typedef _c_keystore_backup = ffi.Pointer<ffi.Int8> Function(
 typedef _dart_keystore_backup = ffi.Pointer<ffi.Int8> Function(
   ffi.Pointer<ffi.Void> ks,
   ffi.Pointer<Fixed32Array> seed,
+);
+
+typedef _c_keystore_calculate_signature = ffi.Int32 Function(
+  ffi.Pointer<ffi.Void> ks,
+  ffi.Pointer<SharedBuffer> message,
+  ffi.Pointer<Fixed64Array> out,
+);
+
+typedef _dart_keystore_calculate_signature = int Function(
+  ffi.Pointer<ffi.Void> ks,
+  ffi.Pointer<SharedBuffer> message,
+  ffi.Pointer<Fixed64Array> out,
 );
 
 typedef _c_keystore_decrypt = ffi.Int32 Function(
@@ -410,4 +475,16 @@ typedef _c_keystore_string_free = ffi.Void Function(
 
 typedef _dart_keystore_string_free = void Function(
   ffi.Pointer<ffi.Int8> ptr,
+);
+
+typedef _c_keystore_verify_signature = ffi.Int32 Function(
+  ffi.Pointer<Fixed32Array> thier_public,
+  ffi.Pointer<SharedBuffer> message,
+  ffi.Pointer<Fixed64Array> signature,
+);
+
+typedef _dart_keystore_verify_signature = int Function(
+  ffi.Pointer<Fixed32Array> thier_public,
+  ffi.Pointer<SharedBuffer> message,
+  ffi.Pointer<Fixed64Array> signature,
 );
