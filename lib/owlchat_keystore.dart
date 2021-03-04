@@ -5,7 +5,6 @@ import 'dart:ffi';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
-import 'package:meta/meta.dart';
 
 import 'extensions.dart';
 import 'ffi.dart' as ffi;
@@ -20,7 +19,7 @@ class OwlchatKeyStore {
   /// is not supported.
   OwlchatKeyStore();
 
-  final ffi.RawKeyStore _raw = _load();
+  late final ffi.RawKeyStore _raw = _load();
   Pointer<Void> _ks = nullptr;
 
   /// Create a new `KeyStore`.
@@ -29,7 +28,7 @@ class OwlchatKeyStore {
   /// and `[KeyStoreSeed]`.
   /// `SecretKey` and `KeyStoreSeed` should be stored in some secure place.
   KeysContainer create() {
-    _ks = _raw?.keystore_new();
+    _ks = _raw.keystore_new();
     if (_ks == nullptr) {
       throw StateError('Failed to create KeyStore (got null)');
     }
@@ -46,7 +45,7 @@ class OwlchatKeyStore {
   /// and the `[KeyStoreSeed]` will be `null`.
   KeysContainer init(SecretKey secretKey) {
     final sk = secretKey.expose().asFixed32ArrayPtr();
-    _ks = _raw?.keystore_init(sk);
+    _ks = _raw.keystore_init(sk);
     if (_ks == nullptr) {
       throw StateError('Failed to init KeyStore (got null)');
     }
@@ -58,14 +57,14 @@ class OwlchatKeyStore {
   }
 
   // ignore: comment_references
-  /// Restores `KeyStore` using a [Mnemonic] paper key.
+  /// Restores `KeyStore` using a [`Mnemonic`] paper key.
   ///
   /// the returned [KeysContainer] will contain [PublicKey], [SecretKey]
   /// and `[KeyStoreSeed]`.
   /// `SecretKey` and `KeyStoreSeed` should be stored in some secure place.
   KeysContainer restore(String paperKey) {
-    final pk = Utf8.toUtf8(paperKey);
-    _ks = _raw?.keystore_restore(pk.cast());
+    final pk = paperKey.toNativeUtf8();
+    _ks = _raw.keystore_restore(pk.cast());
     if (_ks == nullptr) {
       throw StateError('Failed to restore KeyStore (got null)');
     }
@@ -82,17 +81,17 @@ class OwlchatKeyStore {
   /// a [`Mnemonic`] paper key, if the current `KeyStore` has no seed.
   /// it will read from the provided one, if both are null;
   /// it will throw an Error.
-  String backup({KeyStoreSeed seed}) {
+  String backup({KeyStoreSeed? seed}) {
     Pointer<ffi.Fixed32Array> arr = nullptr;
     if (seed != null) {
       arr = seed.expose().asFixed32ArrayPtr();
     }
-    final ptr = _raw?.keystore_backup(_ks, arr);
+    final ptr = _raw.keystore_backup(_ks, arr);
     if (ptr == nullptr) {
       throw StateError('Failed to create backup (got null)');
     }
-    final paperKey = Utf8.fromUtf8(ptr.cast());
-    _raw?.keystore_string_free(ptr);
+    final paperKey = ptr.cast<Utf8>().toDartString();
+    _raw.keystore_string_free(ptr);
     return paperKey;
   }
 
@@ -100,7 +99,7 @@ class OwlchatKeyStore {
   SharedSecret diffieHellman(PublicKey thierPublic) {
     final arr = _emptyFixed32Array();
     final pk = thierPublic.expose().asFixed32ArrayPtr();
-    final status = _raw?.keystore_dh(_ks, pk, arr);
+    final status = _raw.keystore_dh(_ks, pk, arr);
     _assertOk(status);
     final sharedSecret = SharedSecret(arr.asUint8List());
     return sharedSecret;
@@ -108,13 +107,13 @@ class OwlchatKeyStore {
 
   /// Encrypt the provided data using the current `KeyStore`'s [SecretKey]
   /// else uses [SharedSecret] if provided.
-  Uint8List encrypt(Uint8List data, {SharedSecret sharedSecret}) {
+  Uint8List encrypt(Uint8List data, {SharedSecret? sharedSecret}) {
     Pointer<ffi.Fixed32Array> secret = nullptr;
     if (sharedSecret != null) {
       secret = sharedSecret.expose().asFixed32ArrayPtr();
     }
     final input = data.asSharedBufferPtr();
-    final status = _raw?.keystore_encrypt(_ks, input, secret);
+    final status = _raw.keystore_encrypt(_ks, input, secret);
     _assertOk(status);
     final out = input.asUint8List();
     return out;
@@ -122,13 +121,13 @@ class OwlchatKeyStore {
 
   /// Decrypt the provided data using the current `KeyStore`'s [SecretKey]
   /// else uses [SharedSecret] if provided.
-  Uint8List decrypt(Uint8List data, {SharedSecret sharedSecret}) {
+  Uint8List decrypt(Uint8List data, {SharedSecret? sharedSecret}) {
     Pointer<ffi.Fixed32Array> secret = nullptr;
     if (sharedSecret != null) {
       secret = sharedSecret.expose().asFixed32ArrayPtr();
     }
     final input = data.asSharedBufferPtrExact();
-    final status = _raw?.keystore_decrypt(_ks, input, secret);
+    final status = _raw.keystore_decrypt(_ks, input, secret);
     _assertOk(status);
     final out = input.asUint8List();
     return out;
@@ -137,7 +136,7 @@ class OwlchatKeyStore {
   Uint8List calculateSignature(Uint8List message) {
     final input = message.asSharedBufferPtrExact();
     final sig = _emptyFixed64Array();
-    final status = _raw?.keystore_calculate_signature(_ks, input, sig);
+    final status = _raw.keystore_calculate_signature(_ks, input, sig);
     _assertOk(status);
     final out = sig.asUint8List();
     return out;
@@ -152,19 +151,18 @@ class OwlchatKeyStore {
     final sig = signature.asFixed64ArrayPtr();
     final public = thierPublic.expose().asFixed32ArrayPtr();
 
-    final status = _raw?.keystore_verify_signature(
-          public,
-          msg,
-          sig,
-        ) ??
-        ffi.OperationStatus.InvalidSignature;
+    final status = _raw.keystore_verify_signature(
+      public,
+      msg,
+      sig,
+    );
     return status == ffi.OperationStatus.Ok;
   }
 
   /// Current `KeyStore`'s [SecretKey]
   SecretKey get secretKey {
     final secretKeyArray = _emptyFixed32Array();
-    final status = _raw?.keystore_secret_key(_ks, secretKeyArray);
+    final status = _raw.keystore_secret_key(_ks, secretKeyArray);
     _assertOk(status);
     final secretKey = secretKeyArray.asUint8List();
     return SecretKey(secretKey);
@@ -173,7 +171,7 @@ class OwlchatKeyStore {
   /// Current `KeyStore`'s [PublicKey]
   PublicKey get publicKey {
     final publicKeyArray = _emptyFixed32Array();
-    final status = _raw?.keystore_public_key(_ks, publicKeyArray);
+    final status = _raw.keystore_public_key(_ks, publicKeyArray);
     _assertOk(status);
     final publicKey = publicKeyArray.asUint8List();
     return PublicKey(publicKey);
@@ -184,9 +182,9 @@ class OwlchatKeyStore {
   /// ### Note
   /// The [KeyStoreSeed] will be `null` in the case this `KeyStore`
   /// is Inialized with `SecretKey`
-  KeyStoreSeed get seed {
+  KeyStoreSeed? get seed {
     final seedArray = _emptyFixed32Array();
-    final status = _raw?.keystore_seed(_ks, seedArray);
+    final status = _raw.keystore_seed(_ks, seedArray);
     if (status == ffi.OperationStatus.KeyStoreHasNoSeed) {
       return null;
     } else {
@@ -202,13 +200,13 @@ class OwlchatKeyStore {
   /// current [OwlchatKeyStore] could be reused.
   /// to clear everything call `dispose`.
   void clean() {
-    _raw?.keystore_free(_ks);
+    _raw.keystore_free(_ks);
     _ks = nullptr;
   }
 
   Uint8List calculateSha256Hash(String path) {
     final hash = _emptyFixed32Array();
-    final status = _raw?.keystore_sha256_hash(path.toPointer().cast(), hash);
+    final status = _raw.keystore_sha256_hash(path.toNativeUtf8().cast(), hash);
     _assertOk(status);
     return hash.asUint8List();
   }
@@ -218,8 +216,8 @@ class OwlchatKeyStore {
 /// [PublicKey], [SecretKey] and [KeyStoreSeed] if available.
 class KeysContainer {
   KeysContainer({
-    @required this.publicKey,
-    @required this.secretKey,
+    required this.publicKey,
+    required this.secretKey,
     this.seed,
   });
 
@@ -234,7 +232,7 @@ class KeysContainer {
   /// ### Note
   /// The Seed will be `null` in the case this `KeyStore`
   /// is Inialized with `SecretKey`.
-  final KeyStoreSeed seed;
+  final KeyStoreSeed? seed;
 }
 
 /// A [Key] is an abstract class that shares functinality between
@@ -320,20 +318,16 @@ ffi.RawKeyStore _load() {
 
 /// Creates a New Empty `Fixed32Array` so `FFI` can Write into it.
 Pointer<ffi.Fixed32Array> _emptyFixed32Array() {
-  final ptr = allocate<Uint8>(count: 32)
-    ..asTypedList(32).setAll(0, List.filled(32, 0));
-
-  final buf = allocate<ffi.Fixed32Array>();
+  final ptr = calloc.allocate<Uint8>(32)..asTypedList(32);
+  final buf = malloc<ffi.Fixed32Array>();
   buf.ref.buf = ptr;
   return buf;
 }
 
 /// Creates a New Empty `Fixed64Array` so `FFI` can Write into it.
 Pointer<ffi.Fixed64Array> _emptyFixed64Array() {
-  final ptr = allocate<Uint8>(count: 64)
-    ..asTypedList(64).setAll(0, List.filled(64, 0));
-
-  final buf = allocate<ffi.Fixed64Array>();
+  final ptr = calloc.allocate<Uint8>(64)..asTypedList(64);
+  final buf = malloc<ffi.Fixed64Array>();
   buf.ref.buf = ptr;
   return buf;
 }

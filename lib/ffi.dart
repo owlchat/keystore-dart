@@ -25,16 +25,15 @@ class RawKeyStore {
     ffi.Pointer<ffi.Void> ks,
     ffi.Pointer<Fixed32Array> seed,
   ) {
-    _keystore_backup ??=
+    return (_keystore_backup ??=
         _dylib.lookupFunction<_c_keystore_backup, _dart_keystore_backup>(
-            'keystore_backup');
-    return _keystore_backup(
+            'keystore_backup'))(
       ks,
       seed,
     );
   }
 
-  _dart_keystore_backup _keystore_backup;
+  _dart_keystore_backup? _keystore_backup;
 
   /// Calculate the signature of the message using the given `KeyStore`.
   ///
@@ -47,17 +46,16 @@ class RawKeyStore {
     ffi.Pointer<SharedBuffer> message,
     ffi.Pointer<Fixed64Array> out,
   ) {
-    _keystore_calculate_signature ??= _dylib.lookupFunction<
+    return (_keystore_calculate_signature ??= _dylib.lookupFunction<
         _c_keystore_calculate_signature,
-        _dart_keystore_calculate_signature>('keystore_calculate_signature');
-    return _keystore_calculate_signature(
+        _dart_keystore_calculate_signature>('keystore_calculate_signature'))(
       ks,
       message,
       out,
     );
   }
 
-  _dart_keystore_calculate_signature _keystore_calculate_signature;
+  _dart_keystore_calculate_signature? _keystore_calculate_signature;
 
   /// Decrypt the Given data using `KeyStore` owned `SecretKey`
   ///
@@ -70,17 +68,16 @@ class RawKeyStore {
     ffi.Pointer<SharedBuffer> data,
     ffi.Pointer<Fixed32Array> shared_secret,
   ) {
-    _keystore_decrypt ??=
+    return (_keystore_decrypt ??=
         _dylib.lookupFunction<_c_keystore_decrypt, _dart_keystore_decrypt>(
-            'keystore_decrypt');
-    return _keystore_decrypt(
+            'keystore_decrypt'))(
       ks,
       data,
       shared_secret,
     );
   }
 
-  _dart_keystore_decrypt _keystore_decrypt;
+  _dart_keystore_decrypt? _keystore_decrypt;
 
   /// Perform a Diffie-Hellman key agreement to produce a `SharedSecret`.
   ///
@@ -94,16 +91,15 @@ class RawKeyStore {
     ffi.Pointer<Fixed32Array> their_public,
     ffi.Pointer<Fixed32Array> out,
   ) {
-    _keystore_dh ??=
-        _dylib.lookupFunction<_c_keystore_dh, _dart_keystore_dh>('keystore_dh');
-    return _keystore_dh(
+    return (_keystore_dh ??= _dylib
+        .lookupFunction<_c_keystore_dh, _dart_keystore_dh>('keystore_dh'))(
       ks,
       their_public,
       out,
     );
   }
 
-  _dart_keystore_dh _keystore_dh;
+  _dart_keystore_dh? _keystore_dh;
 
   /// Encrypt the Given data using `KeyStore` owned `SecretKey`
   ///
@@ -116,17 +112,16 @@ class RawKeyStore {
     ffi.Pointer<SharedBuffer> data,
     ffi.Pointer<Fixed32Array> shared_secret,
   ) {
-    _keystore_encrypt ??=
+    return (_keystore_encrypt ??=
         _dylib.lookupFunction<_c_keystore_encrypt, _dart_keystore_encrypt>(
-            'keystore_encrypt');
-    return _keystore_encrypt(
+            'keystore_encrypt'))(
       ks,
       data,
       shared_secret,
     );
   }
 
-  _dart_keystore_encrypt _keystore_encrypt;
+  _dart_keystore_encrypt? _keystore_encrypt;
 
   /// Free (Drop) the created KeyStore.
   /// ### Safety
@@ -134,14 +129,14 @@ class RawKeyStore {
   void keystore_free(
     ffi.Pointer<ffi.Void> ks,
   ) {
-    _keystore_free ??= _dylib
-        .lookupFunction<_c_keystore_free, _dart_keystore_free>('keystore_free');
-    return _keystore_free(
+    return (_keystore_free ??=
+        _dylib.lookupFunction<_c_keystore_free, _dart_keystore_free>(
+            'keystore_free'))(
       ks,
     );
   }
 
-  _dart_keystore_free _keystore_free;
+  _dart_keystore_free? _keystore_free;
 
   /// Init the `KeyStore` with existing SecretKey Bytes.
   ///
@@ -154,25 +149,24 @@ class RawKeyStore {
   ffi.Pointer<ffi.Void> keystore_init(
     ffi.Pointer<Fixed32Array> secret_key,
   ) {
-    _keystore_init ??= _dylib
-        .lookupFunction<_c_keystore_init, _dart_keystore_init>('keystore_init');
-    return _keystore_init(
+    return (_keystore_init ??=
+        _dylib.lookupFunction<_c_keystore_init, _dart_keystore_init>(
+            'keystore_init'))(
       secret_key,
     );
   }
 
-  _dart_keystore_init _keystore_init;
+  _dart_keystore_init? _keystore_init;
 
   /// Create a new [`KeyStore`].
   ///
   /// See [`KeyStore::new`] for full docs.
   ffi.Pointer<ffi.Void> keystore_new() {
-    _keystore_new ??= _dylib
-        .lookupFunction<_c_keystore_new, _dart_keystore_new>('keystore_new');
-    return _keystore_new();
+    return (_keystore_new ??= _dylib
+        .lookupFunction<_c_keystore_new, _dart_keystore_new>('keystore_new'))();
   }
 
-  _dart_keystore_new _keystore_new;
+  _dart_keystore_new? _keystore_new;
 
   /// Get the KeyStore Public Key as `Fixed32Array`.
   ///
@@ -183,15 +177,15 @@ class RawKeyStore {
     ffi.Pointer<ffi.Void> ks,
     ffi.Pointer<Fixed32Array> out,
   ) {
-    _keystore_public_key ??= _dylib.lookupFunction<_c_keystore_public_key,
-        _dart_keystore_public_key>('keystore_public_key');
-    return _keystore_public_key(
+    return (_keystore_public_key ??= _dylib.lookupFunction<
+        _c_keystore_public_key,
+        _dart_keystore_public_key>('keystore_public_key'))(
       ks,
       out,
     );
   }
 
-  _dart_keystore_public_key _keystore_public_key;
+  _dart_keystore_public_key? _keystore_public_key;
 
   /// Restore a `KeyStore` from a [`Mnemonic`] Paper Backup.
   ///
@@ -202,15 +196,14 @@ class RawKeyStore {
   ffi.Pointer<ffi.Void> keystore_restore(
     ffi.Pointer<ffi.Int8> paper_key,
   ) {
-    _keystore_restore ??=
+    return (_keystore_restore ??=
         _dylib.lookupFunction<_c_keystore_restore, _dart_keystore_restore>(
-            'keystore_restore');
-    return _keystore_restore(
+            'keystore_restore'))(
       paper_key,
     );
   }
 
-  _dart_keystore_restore _keystore_restore;
+  _dart_keystore_restore? _keystore_restore;
 
   /// Get the KeyStore Secret Key as `Fixed32Array`.
   ///
@@ -221,15 +214,15 @@ class RawKeyStore {
     ffi.Pointer<ffi.Void> ks,
     ffi.Pointer<Fixed32Array> out,
   ) {
-    _keystore_secret_key ??= _dylib.lookupFunction<_c_keystore_secret_key,
-        _dart_keystore_secret_key>('keystore_secret_key');
-    return _keystore_secret_key(
+    return (_keystore_secret_key ??= _dylib.lookupFunction<
+        _c_keystore_secret_key,
+        _dart_keystore_secret_key>('keystore_secret_key'))(
       ks,
       out,
     );
   }
 
-  _dart_keystore_secret_key _keystore_secret_key;
+  _dart_keystore_secret_key? _keystore_secret_key;
 
   /// Get the KeyStore Seed as `Fixed32Array`.
   ///
@@ -240,15 +233,15 @@ class RawKeyStore {
     ffi.Pointer<ffi.Void> ks,
     ffi.Pointer<Fixed32Array> out,
   ) {
-    _keystore_seed ??= _dylib
-        .lookupFunction<_c_keystore_seed, _dart_keystore_seed>('keystore_seed');
-    return _keystore_seed(
+    return (_keystore_seed ??=
+        _dylib.lookupFunction<_c_keystore_seed, _dart_keystore_seed>(
+            'keystore_seed'))(
       ks,
       out,
     );
   }
 
-  _dart_keystore_seed _keystore_seed;
+  _dart_keystore_seed? _keystore_seed;
 
   /// Calculate SHA256 Hash of the provided file path.
   ///
@@ -260,15 +253,15 @@ class RawKeyStore {
     ffi.Pointer<ffi.Int8> file_path,
     ffi.Pointer<Fixed32Array> out,
   ) {
-    _keystore_sha256_hash ??= _dylib.lookupFunction<_c_keystore_sha256_hash,
-        _dart_keystore_sha256_hash>('keystore_sha256_hash');
-    return _keystore_sha256_hash(
+    return (_keystore_sha256_hash ??= _dylib.lookupFunction<
+        _c_keystore_sha256_hash,
+        _dart_keystore_sha256_hash>('keystore_sha256_hash'))(
       file_path,
       out,
     );
   }
 
-  _dart_keystore_sha256_hash _keystore_sha256_hash;
+  _dart_keystore_sha256_hash? _keystore_sha256_hash;
 
   /// Free (Drop) a string value allocated by Rust.
   /// ### Safety
@@ -276,14 +269,14 @@ class RawKeyStore {
   void keystore_string_free(
     ffi.Pointer<ffi.Int8> ptr,
   ) {
-    _keystore_string_free ??= _dylib.lookupFunction<_c_keystore_string_free,
-        _dart_keystore_string_free>('keystore_string_free');
-    return _keystore_string_free(
+    return (_keystore_string_free ??= _dylib.lookupFunction<
+        _c_keystore_string_free,
+        _dart_keystore_string_free>('keystore_string_free'))(
       ptr,
     );
   }
 
-  _dart_keystore_string_free _keystore_string_free;
+  _dart_keystore_string_free? _keystore_string_free;
 
   /// Verifies the signature of the message using the given `PublicKey`.
   ///
@@ -297,17 +290,16 @@ class RawKeyStore {
     ffi.Pointer<SharedBuffer> message,
     ffi.Pointer<Fixed64Array> signature,
   ) {
-    _keystore_verify_signature ??= _dylib.lookupFunction<
+    return (_keystore_verify_signature ??= _dylib.lookupFunction<
         _c_keystore_verify_signature,
-        _dart_keystore_verify_signature>('keystore_verify_signature');
-    return _keystore_verify_signature(
+        _dart_keystore_verify_signature>('keystore_verify_signature'))(
       thier_public,
       message,
       signature,
     );
   }
 
-  _dart_keystore_verify_signature _keystore_verify_signature;
+  _dart_keystore_verify_signature? _keystore_verify_signature;
 }
 
 abstract class OperationStatus {
@@ -326,21 +318,21 @@ abstract class OperationStatus {
 }
 
 class Fixed32Array extends ffi.Struct {
-  ffi.Pointer<ffi.Uint8> buf;
+  external ffi.Pointer<ffi.Uint8> buf;
 }
 
 class SharedBuffer extends ffi.Struct {
-  ffi.Pointer<ffi.Uint8> buf;
+  external ffi.Pointer<ffi.Uint8> buf;
 
   @ffi.Uint64()
-  int len;
+  external int len;
 
   @ffi.Uint64()
-  int cap;
+  external int cap;
 }
 
 class Fixed64Array extends ffi.Struct {
-  ffi.Pointer<ffi.Uint8> buf;
+  external ffi.Pointer<ffi.Uint8> buf;
 }
 
 typedef _c_keystore_backup = ffi.Pointer<ffi.Int8> Function(

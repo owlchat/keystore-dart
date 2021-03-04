@@ -21,7 +21,7 @@ void main() {
         growable: false,
       ),
     );
-    Uint8List output;
+    late Uint8List output;
     test('it should create new KeyStore', () {
       final keys = keyStore.create();
       expect(keys, isNotNull);
@@ -54,8 +54,8 @@ void main() {
         growable: false,
       ),
     );
-    SecretKey secretKey;
-    Uint8List output;
+    late SecretKey secretKey;
+    late Uint8List output;
 
     test('it should create new KeyStore', () {
       final keys = keyStore.create();
@@ -134,8 +134,8 @@ void main() {
         growable: false,
       ),
     );
-    String paperKey;
-    Uint8List output;
+    late String paperKey;
+    late Uint8List output;
     test('it should create new KeyStore', () {
       final keys = keyStore.create();
       paperKey = keyStore.backup();
@@ -170,7 +170,7 @@ void main() {
         growable: false,
       ),
     );
-    Uint8List signature;
+    late Uint8List signature;
     test('it should create signature', () {
       final keys = keyStore.create();
       expect(keys, isNotNull);
